@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADSO & Inglés AI Pro - Tracker y Temporizador</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .timer-alert { animation: pulse-ring 1s infinite; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Header / Barra Superior -->
+  <header class="bg-slate-800/80 border-b border-slate-700 backdrop-blur sticky top-0 z-50 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+          <i class="fa-solid fa-code text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-base md:text-lg leading-tight">ADSO & Inglés AI Pro</h1>
+          <p class="text-xs text-slate-400">Tracker Diario • Cero Procrastinación</p>
+        </div>
+      </div>
+
+      <!-- Stats / Racha y Puntos -->
+      <div class="flex items-center gap-3">
+        <div class="bg-slate-950/60 px-3 py-1.5 rounded-lg border border-slate-700/60 flex items-center gap-2 text-xs">
+          <i class="fa-solid fa-fire text-amber-500 text-sm"></i>
+          <span class="text-slate-300">Racha:</span>
+          <span id="streak-count" class="font-bold text-amber-400">1</span> días
+        </div>
+        <div class="bg-slate-950/60 px-3 py-1.5 rounded-lg border border-slate-700/60 flex items-center gap-2 text-xs">
+          <i class="fa-solid fa-trophy text-yellow-400 text-sm"></i>
+          <span class="text-slate-300">Puntos:</span>
+          <span id="pts-count" class="font-bold text-yellow-300">50</span>
+        </div>
+        <!-- Botón Sincronizar -->
+        <button onclick="openSyncModal()" class="bg-indigo-600/80 hover:bg-indigo-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span class="hidden sm:inline">Sincronizar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="max-w-6xl mx-auto p-4 w-full flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Columna Izquierda / Central: Selector de Día y Bloques de Estudio -->
+    <div class="lg:col-span-2 space-y-6">
+
+      <!-- Selector de Día -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-md flex items-center justify-between gap-2">
+        <button onclick="prevDay()" class="p-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 transition">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div class="text-center">
+          <span id="current-week-tag" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">Semana 1</span>
+          <h2 id="current-day-title" class="text-lg md:text-xl font-bold mt-1 text-white">Día 1: Miércoles Noche (Arranque)</h2>
+          <p id="current-day-date" class="text-xs text-slate-400">Sesión introductoria</p>
+        </div>
+        <button onclick="nextDay()" class="p-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 transition">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- Tarjeta Bloque 1: Técnico ADSO / Google AI Pro -->
+      <div id="block1-card" class="bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-md transition hover:border-slate-600">
+        <div class="flex items-center justify-between gap-2 border-b border-slate-700/80 pb-3 mb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-sm">1</span>
+            <div>
+              <h3 class="font-bold text-white text-sm md:text-base">07:30 - 08:00 AM | Bloque ADSO & AI Pro</h3>
+              <p id="b1-tool" class="text-xs text-blue-400 font-medium">Gemini Notebook (NotebookLM)</p>
+            </div>
+          </div>
+          <button onclick="startTimer(30, 'Bloque ADSO 30 min')" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-play"></i> Iniciar 30m
+          </button>
+        </div>
+        <div class="text-xs md:text-sm text-slate-300 space-y-2">
+          <p class="font-semibold text-slate-200">Paso a paso en tu pantalla:</p>
+          <div id="b1-steps" class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 text-xs text-slate-300 whitespace-pre-line">
+            1. Abre Gemini Notebook.
+            2. Crea el cuaderno 'ADSO - Módulo Actual'.
+            3. Sube el PDF de tu guía de aprendizaje del SENA.
+            4. Solicita a la IA la extracción del mapa conceptual y división temática.
+          </div>
+        </div>
+        <!-- Prompt Box -->
+        <div class="mt-4">
+          <div class="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+            <span class="font-semibold text-slate-300"><i class="fa-regular fa-copy mr-1 text-blue-400"></i> Prompt para la herramienta:</span>
+            <button onclick="copyText('b1-prompt')" class="text-blue-400 hover:text-blue-300 font-medium transition">Copiar Prompt</button>
+          </div>
+          <div id="b1-prompt" class="bg-slate-950 p-3 rounded-xl border border-slate-700 text-xs text-emerald-400 font-mono select-all">
+            Actúa como Arquitecto de Software y docente ADSO. He subido mi guía técnica. Por favor identifica los 4 pilares conceptuales del documento, genera un mapa conceptual en texto y lista 3 proyectos prácticos que se pueden construir con esta temática.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjeta Bloque 2: Inglés Técnico -->
+      <div id="block2-card" class="bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-md transition hover:border-slate-600">
+        <div class="flex items-center justify-between gap-2 border-b border-slate-700/80 pb-3 mb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">2</span>
+            <div>
+              <h3 class="font-bold text-white text-sm md:text-base">08:00 - 08:30 AM | Inglés Técnico Activo</h3>
+              <p id="b2-method" class="text-xs text-emerald-400 font-medium">Lectura técnica & Modo Voz Gemini</p>
+            </div>
+          </div>
+          <button onclick="startTimer(30, 'Bloque Inglés 30 min')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-play"></i> Iniciar 30m
+          </button>
+        </div>
+        <div class="text-xs md:text-sm text-slate-300 space-y-2">
+          <p class="font-semibold text-slate-200">Actividad del bloque:</p>
+          <div id="b2-steps" class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 text-xs text-slate-300 whitespace-pre-line">
+            Lectura técnica (15m): Abre la documentación oficial en inglés del lenguaje base (Java/JS/Python). Extrae 5 verbos técnicos.
+            Registro (15m): Escribe su significado técnico en tu cuaderno.
+          </div>
+        </div>
+        <!-- Prompt Box -->
+        <div class="mt-4">
+          <div class="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+            <span class="font-semibold text-slate-300"><i class="fa-regular fa-copy mr-1 text-emerald-400"></i> Prompt para Gemini (Voz o Chat):</span>
+            <button onclick="copyText('b2-prompt')" class="text-emerald-400 hover:text-emerald-300 font-medium transition">Copiar Prompt</button>
+          </div>
+          <div id="b2-prompt" class="bg-slate-950 p-3 rounded-xl border border-slate-700 text-xs text-emerald-400 font-mono select-all">
+            I am an ADSO software engineering student. Give me 5 core software verbs in English (e.g., parse, execute, deploy) with an example sentence in simple present related to coding.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjeta Bloque 3: Noche Platzi & Duolingo -->
+      <div id="block3-card" class="bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-md">
+        <div class="flex items-center justify-between border-b border-slate-700/80 pb-3 mb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-sm">3</span>
+            <div>
+              <h3 class="font-bold text-white text-sm md:text-base">Noche: Video Platzi + Duolingo</h3>
+              <p class="text-xs text-indigo-400 font-medium">Refuerzo sin esfuerzo mental excesivo</p>
+            </div>
+          </div>
+          <button onclick="startTimer(25, 'Bloque Noche 25 min')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-play"></i> Iniciar 25m
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/60">
+            <span class="text-indigo-400 font-bold block mb-1"><i class="fa-brands fa-google-drive mr-1"></i> Platzi en Drive (15 min):</span>
+            <p id="b3-platzi" class="text-slate-300">1. Introducing myself and others (Clase 1: Saludos y ocupación tech)</p>
+          </div>
+          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/60">
+            <span class="text-emerald-400 font-bold block mb-1"><i class="fa-solid fa-feather mr-1"></i> Duolingo (10 min):</span>
+            <p id="b3-duolingo" class="text-slate-300">Racha activa (10m) - Algoritmo SRS</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botón Marcar Día Completado -->
+      <div class="text-center pt-2">
+        <button id="btn-complete-day" onclick="toggleCompleteCurrentDay()" class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 font-bold text-sm shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 transition">
+          <i class="fa-solid fa-circle-check text-lg"></i>
+          <span>¡Marcar este Día como Completado! (+50 pts)</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Columna Derecha: Temporizador con Insistencia + Active Recall Quiz -->
+    <div class="space-y-6">
+
+      <!-- Caja del Temporizador -->
+      <div class="bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-md text-center">
+        <h3 id="timer-label" class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Temporizador de Sesión</h3>
+        <div id="timer-display" class="text-5xl md:text-6xl font-mono font-black text-blue-400 my-4 tracking-tighter">
+          30:00
+        </div>
+        
+        <!-- Controles Temporizador -->
+        <div class="flex justify-center gap-3">
+          <button id="timer-toggle-btn" onclick="toggleTimer()" class="w-12 h-12 rounded-xl bg-blue-600 hover:bg-blue-500 flex items-center justify-center text-white text-lg transition shadow-md">
+            <i class="fa-solid fa-play"></i>
+          </button>
+          <button onclick="resetTimer()" class="w-12 h-12 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-300 text-lg transition">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+
+        <!-- Alerta de Insistencia (Oculta por defecto) -->
+        <div id="insist-box" class="hidden mt-4 p-3 bg-red-950/80 border border-red-500/80 rounded-xl text-left timer-alert">
+          <div class="flex items-center gap-2 text-red-400 font-bold text-xs mb-1">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>¡TIEMPO CUMPLIDO (00:00)!</span>
+          </div>
+          <p class="text-xs text-red-200 mb-2">¿Ya completaste la tarea y subiste la entrega? Si no confirmas, volveré a sonar cada 5 minutos.</p>
+          <button onclick="confirmTaskDone()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition">
+            <i class="fa-solid fa-check mr-1"></i> ¡Sí, lo logré! Detener alarma
+          </button>
+        </div>
+      </div>
+
+      <!-- Caja de Active Recall Interactivo (Cuestionario) -->
+      <div class="bg-slate-800 rounded-2xl p-5 border border-slate-700 shadow-md space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-700/80 pb-3">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-brain text-purple-400"></i>
+            <h3 class="font-bold text-white text-sm">Active Recall del Día</h3>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 font-mono">+20 pts</span>
+        </div>
+
+        <p id="quiz-question" class="text-xs md:text-sm font-medium text-slate-200">
+          En el análisis de software, ¿cuál de los siguientes enunciados corresponde estrictamente a un requerimiento funcional?
+        </p>
+
+        <!-- Opciones -->
+        <div id="quiz-options" class="space-y-2">
+          <!-- Dinámico -->
+        </div>
+
+        <!-- Feedback / Feynman Explicación -->
+        <div id="quiz-feedback" class="hidden p-3 rounded-xl text-xs space-y-1">
+          <!-- Dinámico -->
+        </div>
+      </div>
+
+      <!-- Calendario Rápido Mini (56 Días) -->
+      <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-md">
+        <h4 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-3 flex items-center justify-between">
+          <span>Mapa de Progreso (56 Días)</span>
+          <span id="completed-badge" class="text-emerald-400 font-mono">0 / 56</span>
+        </h4>
+        <div id="days-grid" class="grid grid-cols-7 gap-1.5 max-h-48 overflow-y-auto p-1 bg-slate-950/40 rounded-xl border border-slate-800">
+          <!-- 56 celdas dinámicas -->
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Modal de Sincronización (Exportar / Importar) -->
+  <div id="sync-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h3 class="font-bold text-white text-base flex items-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i> Sincronización de Dispositivos
+        </h3>
+        <button onclick="closeSyncModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <p class="text-xs text-slate-300">
+        Para pasar tus puntos, racha y días completados de tu PC al celular (o viceversa), copia este código y pégalo en tu otro dispositivo:
+      </p>
+      
+      <div>
+        <label class="text-xs font-semibold text-slate-400 block mb-1">Código de Progreso Actual:</label>
+        <textarea id="sync-code-area" class="w-full h-24 bg-slate-950 border border-slate-700 rounded-xl p-2 text-xs font-mono text-emerald-400 select-all"></textarea>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="copySyncCode()" class="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold transition">
+          <i class="fa-regular fa-copy mr-1"></i> Copiar Código
+        </button>
+        <button onclick="applySyncCode()" class="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold transition">
+          <i class="fa-solid fa-arrow-down-to-bracket mr-1"></i> Cargar Código
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio sintetizado para alarmas (Web Audio API) -->
+  <script>
+    // Generador de sonidos sin archivos externos
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq = 600, duration = 0.2, type = 'sine') {
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e) {}
+    }
+
+    function playAlarm() {
+      playBeep(880, 0.15, 'square');
+      setTimeout(() => playBeep(880, 0.15, 'square'), 200);
+      setTimeout(() => playBeep(1200, 0.3, 'sawtooth'), 400);
+    }
+  </script>
+
+  <!-- Datos y Lógica Principal -->
+  <script>
+    // 56 Días estructurados a partir de Miércoles Noche (Día 1)
+    const daysData = [];
+    const diasSemana = ["Miércoles (Noche)", "Jueves", "Viernes", "Sábado", "Domingo", "Lunes", "Martes"];
+    
+    // Generar datos base
+    for(let i = 1; i <= 56; i++) {
+      const week = Math.ceil(i / 7);
+      const dayInWeek = diasSemana[(i - 1) % 7];
+      let tool = "Gemini Notebook (NotebookLM)";
+      if (week === 2) tool = "Gemini Code Assist en IDE";
+      else if (week === 3) tool = "Firebase Studio (Firestore)";
+      else if (week === 4) tool = "Jules (Agente en GitHub)";
+      else if (week === 5) tool = "Google AI Studio (Gemini API)";
+      else if (week === 6) tool = "Google Antigravity (Entorno Agéntico)";
+      else if (week === 7) tool = "Firebase Studio Avanzado (Auth)";
+      else if (week === 8) tool = "Proyecto Integrador Full-Stack";
+
+      daysData.push({
+        dayNum: i,
+        week: week,
+        title: `Día ${i}: ${dayInWeek}`,
+        date: `Semana ${week} del Plan Bimestral`,
+        b1Tool: tool,
+        b1Steps: `1. Abre ${tool}.\n2. Trabaja en la sesión técnica de hoy.\n3. Aplica los principios de Clean Code y notas en tu cuaderno.`,
+        b1Prompt: `Actúa como tutor de ADSO. Analiza la guía de hoy sobre ${tool}. Dame un resumen en 3 párrafos usando la técnica Feynman y evalúa mi entendimiento.`,
+        b2Method: "Lectura técnica & Modo Voz Gemini",
+        b2Steps: "Lectura técnica (15m): Documentación oficial en inglés.\nPráctica de voz (15m): Daily Stand-up o explicación con Gemini.",
+        b2Prompt: `I am an ADSO software engineering student. Let's do a 5-minute conversation about ${tool} in simple professional English. Ask me one question at a time.`,
+        b3Platzi: `Módulo correspondiente a la Semana ${week} en tu carpeta de Drive`,
+        b3Duolingo: "Racha activa (10m) - Algoritmo SRS",
+        quiz: {
+          q: i === 1 ? "En el análisis de software, ¿cuál corresponde estrictamente a un requerimiento funcional?" : "¿Qué característica define mejor a una base de datos NoSQL como Cloud Firestore?",
+          options: i === 1 ? [
+            "El sistema debe procesar transacciones en menos de 1.5s",
+            "El sistema debe permitir exportar el reporte en PDF",
+            "El aplicativo debe usar cifrado TLS 1.3",
+            "La base de datos debe soportar 10.000 usuarios concurrentes"
+          ] : [
+            "Usa tablas estrictas con claves foráneas obligatorias",
+            "Almacena datos en documentos flexibles tipo JSON agrupados en colecciones",
+            "Requiere normalización obligatoria hasta la 3FN",
+            "Solo se puede consultar mediante el lenguaje SQL clásico"
+          ],
+          correct: i === 1 ? 1 : 1,
+          feynman: i === 1 ? "¡Correcto! Los requerimientos funcionales son las acciones concretas ('el qué hace el software para el usuario'), mientras que rendimiento o cifrado son requerimientos no funcionales (atributos de calidad)." : "¡Correcto! Firestore organiza la información en documentos clave-valor (como notas JSON) dentro de carpetas llamadas colecciones."
+        }
+      });
+    }
+
+    // Estado de la App
+    let currentDayIndex = 0;
+    let userProgress = {
+      completedDays: {},
+      streak: 1,
+      points: 50,
+      quizAnswers: {}
+    };
+
+    // Cargar LocalStorage
+    function loadState() {
+      const saved = localStorage.getItem('adso_tracker_state');
+      if (saved) {
+        try {
+          userProgress = JSON.parse(saved);
+        } catch(e) {}
+      }
+      renderAll();
+    }
+
+    function saveState() {
+      localStorage.setItem('adso_tracker_state', JSON.stringify(userProgress));
+      document.getElementById('streak-count').innerText = userProgress.streak || 1;
+      document.getElementById('pts-count').innerText = userProgress.points || 0;
+      renderGrid();
+    }
+
+    // Renderizar Día
+    function renderDay(index) {
+      currentDayIndex = index;
+      const d = daysData[index];
+      document.getElementById('current-week-tag').innerText = `Semana ${d.week}`;
+      document.getElementById('current-day-title').innerText = d.title;
+      document.getElementById('current-day-date').innerText = d.date;
+
+      document.getElementById('b1-tool').innerText = d.b1Tool;
+      document.getElementById('b1-steps').innerText = d.b1Steps.replace(/\\n/g, '\n');
+      document.getElementById('b1-prompt').innerText = d.b1Prompt;
+
+      document.getElementById('b2-method').innerText = d.b2Method;
+      document.getElementById('b2-steps').innerText = d.b2Steps.replace(/\\n/g, '\n');
+      document.getElementById('b2-prompt').innerText = d.b2Prompt;
+
+      document.getElementById('b3-platzi').innerText = d.b3Platzi;
+      document.getElementById('b3-duolingo').innerText = d.b3Duolingo;
+
+      // Botón completar
+      const btn = document.getElementById('btn-complete-day');
+      if (userProgress.completedDays[d.dayNum]) {
+        btn.classList.remove('from-emerald-600', 'to-teal-500');
+        btn.classList.add('bg-slate-700', 'text-emerald-400');
+        btn.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i> Día Completado (Click para desmarcar)';
+      } else {
+        btn.classList.add('from-emerald-600', 'to-teal-500');
+        btn.classList.remove('bg-slate-700', 'text-emerald-400');
+        btn.innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i> ¡Marcar este Día como Completado! (+50 pts)';
+      }
+
+      // Quiz
+      renderQuiz(d.quiz, d.dayNum);
+    }
+
+    function renderQuiz(quiz, dayNum) {
+      document.getElementById('quiz-question').innerText = quiz.q;
+      const optsContainer = document.getElementById('quiz-options');
+      const feed = document.getElementById('quiz-feedback');
+      optsContainer.innerHTML = '';
+      feed.classList.add('hidden');
+
+      const isAnswered = userProgress.quizAnswers[dayNum] !== undefined;
+
+      quiz.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `w-full text-left p-3 rounded-xl border text-xs transition flex items-center justify-between ${
+          isAnswered 
+            ? (idx === quiz.correct ? 'bg-emerald-950/60 border-emerald-500 text-emerald-200' : (idx === userProgress.quizAnswers[dayNum] ? 'bg-red-950/60 border-red-500 text-red-200' : 'bg-slate-900/40 border-slate-800 text-slate-500'))
+            : 'bg-slate-900/80 hover:bg-slate-700/80 border-slate-700 text-slate-200'
+        }`;
+        btn.innerHTML = `<span><strong>${String.fromCharCode(65 + idx)})</strong> ${opt}</span>`;
+        if (!isAnswered) {
+          btn.onclick = () => answerQuiz(idx, quiz.correct, quiz.feynman, dayNum);
+        }
+        optsContainer.appendChild(btn);
+      });
+
+      if (isAnswered) {
+        feed.classList.remove('hidden');
+        const correct = userProgress.quizAnswers[dayNum] === quiz.correct;
+        feed.className = `p-3 rounded-xl text-xs space-y-1 ${correct ? 'bg-emerald-950/80 border border-emerald-500/60 text-emerald-200' : 'bg-red-950/80 border border-red-500/60 text-red-200'}`;
+        feed.innerHTML = `<strong>Técnica Feynman:</strong> <p>${quiz.feynman}</p>`;
+      }
+    }
+
+    function answerQuiz(selected, correct, feynman, dayNum) {
+      userProgress.quizAnswers[dayNum] = selected;
+      if (selected === correct) {
+        userProgress.points = (userProgress.points || 0) + 20;
+        playBeep(800, 0.2);
+      } else {
+        playBeep(300, 0.3);
+      }
+      saveState();
+      renderQuiz(daysData[currentDayIndex].quiz, dayNum);
+    }
+
+    function toggleCompleteCurrentDay() {
+      const dNum = daysData[currentDayIndex].dayNum;
+      if (userProgress.completedDays[dNum]) {
+        delete userProgress.completedDays[dNum];
+        userProgress.points = Math.max(0, (userProgress.points || 50) - 50);
+      } else {
+        userProgress.completedDays[dNum] = true;
+        userProgress.points = (userProgress.points || 0) + 50;
+        userProgress.streak = Object.keys(userProgress.completedDays).length;
+        playBeep(900, 0.3);
+      }
+      saveState();
+      renderDay(currentDayIndex);
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('days-grid');
+      grid.innerHTML = '';
+      let doneCount = 0;
+      for (let i = 1; i <= 56; i++) {
+        const isDone = !!userProgress.completedDays[i];
+        if (isDone) doneCount++;
+        const cell = document.createElement('button');
+        cell.className = `h-7 rounded text-[10px] font-mono flex items-center justify-center transition ${
+          i - 1 === currentDayIndex 
+            ? 'ring-2 ring-blue-400 font-bold ' 
+            : ''
+        } ${
+          isDone 
+            ? 'bg-emerald-600 text-white font-bold' 
+            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+        }`;
+        cell.innerText = i;
+        cell.onclick = () => renderDay(i - 1);
+        grid.appendChild(cell);
+      }
+      document.getElementById('completed-badge').innerText = `${doneCount} / 56`;
+    }
+
+    function prevDay() {
+      if (currentDayIndex > 0) renderDay(currentDayIndex - 1);
+    }
+    function nextDay() {
+      if (currentDayIndex < daysData.length - 1) renderDay(currentDayIndex + 1);
+    }
+
+    function copyText(elemId) {
+      const text = document.getElementById(elemId).innerText;
+      navigator.clipboard.writeText(text);
+      playBeep(700, 0.1);
+      alert('¡Prompt copiado al portapapeles!');
+    }
+
+    // LÓGICA DEL TEMPORIZADOR CON ALARMA INSISTENTE
+    let timerDuration = 30 * 60;
+    let timerRemaining = timerDuration;
+    let timerInterval = null;
+    let insistInterval = null;
+
+    function formatTime(secs) {
+      const m = Math.floor(secs / 60).toString().padStart(2, '0');
+      const s = (secs % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function startTimer(minutes, label) {
+      clearInterval(timerInterval);
+      clearInterval(insistInterval);
+      document.getElementById('insist-box').classList.add('hidden');
+      document.getElementById('timer-display').classList.remove('timer-alert', 'text-red-400');
+      document.getElementById('timer-display').classList.add('text-blue-400');
+
+      timerDuration = minutes * 60;
+      timerRemaining = timerDuration;
+      document.getElementById('timer-label').innerText = label;
+      document.getElementById('timer-display').innerText = formatTime(timerRemaining);
+      toggleTimer();
+    }
+
+    function toggleTimer() {
+      const btn = document.getElementById('timer-toggle-btn');
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        btn.innerHTML = '<i class="fa-solid fa-play"></i>';
+      } else {
+        if (timerRemaining <= 0) timerRemaining = timerDuration;
+        btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        timerInterval = setInterval(() => {
+          timerRemaining--;
+          document.getElementById('timer-display').innerText = formatTime(timerRemaining);
+          if (timerRemaining <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            btn.innerHTML = '<i class="fa-solid fa-play"></i>';
+            triggerInsistentAlarm();
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      clearInterval(insistInterval);
+      timerInterval = null;
+      insistInterval = null;
+      timerRemaining = timerDuration;
+      document.getElementById('timer-toggle-btn').innerHTML = '<i class="fa-solid fa-play"></i>';
+      document.getElementById('timer-display').innerText = formatTime(timerRemaining);
+      document.getElementById('insist-box').classList.add('hidden');
+      document.getElementById('timer-display').classList.remove('timer-alert', 'text-red-400');
+      document.getElementById('timer-display').classList.add('text-blue-400');
+    }
+
+    function triggerInsistentAlarm() {
+      playAlarm();
+      document.getElementById('insist-box').classList.remove('hidden');
+      document.getElementById('timer-display').classList.add('timer-alert', 'text-red-400');
+
+      // Insistir cada 5 minutos (300,000 ms)
+      clearInterval(insistInterval);
+      insistInterval = setInterval(() => {
+        playAlarm();
+      }, 5 * 60 * 1000);
+    }
+
+    function confirmTaskDone() {
+      clearInterval(insistInterval);
+      insistInterval = null;
+      document.getElementById('insist-box').classList.add('hidden');
+      document.getElementById('timer-display').classList.remove('timer-alert', 'text-red-400');
+      document.getElementById('timer-display').classList.add('text-blue-400');
+      playBeep(900, 0.2);
+      alert('¡Excelente trabajo! Has vencido la procrastinación en este bloque.');
+    }
+
+    // Modal Sincronización
+    function openSyncModal() {
+      document.getElementById('sync-code-area').value = btoa(JSON.stringify(userProgress));
+      document.getElementById('sync-modal').classList.remove('hidden');
+    }
+    function closeSyncModal() {
+      document.getElementById('sync-modal').classList.add('hidden');
+    }
+    function copySyncCode() {
+      const area = document.getElementById('sync-code-area');
+      area.select();
+      navigator.clipboard.writeText(area.value);
+      alert('¡Código copiado! Pégalo en tu otro dispositivo.');
+    }
+    function applySyncCode() {
+      const code = document.getElementById('sync-code-area').value.trim();
+      try {
+        const decoded = JSON.parse(atob(code));
+        userProgress = decoded;
+        saveState();
+        renderAll();
+        closeSyncModal();
+        alert('¡Progreso sincronizado exitosamente!');
+      } catch(e) {
+        alert('El código ingresado no es válido.');
+      }
+    }
+
+    function renderAll() {
+      renderDay(currentDayIndex);
+      renderGrid();
+      document.getElementById('streak-count').innerText = userProgress.streak || 1;
+      document.getElementById('pts-count').innerText = userProgress.points || 50;
+    }
+
+    // Inicializar
+    window.onload = loadState;
+  </script>
+</body>
+</html>
