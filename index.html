@@ -15,6 +15,7 @@
     .timer-alert { animation: pulse-ring 1s infinite; }
   </style>
 </head>
+  
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
 
   <!-- Header / Barra Superior -->
@@ -637,5 +638,45 @@
   <a href="habitos.html" style="position:fixed; bottom:20px; right:20px; background:#4f46e5; color:white; padding:10px 16px; border-radius:12px; text-decoration:none; font-family:sans-serif; font-weight:bold; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:9999;">
   🔥 Ver mis Hábitos
 </a>
+  <!-- Botón y Sincronización Universal con la misma Llave -->
+<button onclick="syncIndexWithGist()" id="btnSyncIndex" style="position:fixed; bottom:20px; left:20px; background:#1e293b; color:#f8fafc; border:1px solid #475569; padding:10px 16px; border-radius:12px; font-family:sans-serif; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:9999;">
+  ☁️ Sincronizar Inglés
+</button>
+
+<script>
+async function syncIndexWithGist() {
+  let token = localStorage.getItem('habitflow_gh_token') || prompt('Pega tu Llave (GitHub Token ghp_...):');
+  if (!token) return;
+  localStorage.setItem('habitflow_gh_token', token.trim());
+
+  let gistId = localStorage.getItem('habitflow_gh_gist') || prompt('Pega tu ID de Casillero (o déjalo vacío si es la primera vez):');
+  const btn = document.getElementById('btnSyncIndex');
+  btn.textContent = '⏳ Sincronizando...';
+
+  // Guarda todos los datos locales de tu página de inglés y hábitos juntos
+  const allData = JSON.stringify(localStorage);
+  const payload = {
+    description: "Sincronización Total: Inglés + HabitFlow",
+    public: false,
+    files: { "backup_total.json": { content: allData } }
+  };
+
+  try {
+    const url = gistId ? `https://api.github.com/gists/${gistId.trim()}` : `https://api.github.com/gists`;
+    const method = gistId ? 'PATCH' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Authorization': `token ${token.trim()}`, 'Accept': 'application/vnd.github.v3+json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    localStorage.setItem('habitflow_gh_gist', data.id);
+    btn.textContent = '✅ ¡Sincronizado!';
+    alert('Sincronizado con éxito. Tu ID de casillero es: ' + data.id);
+  } catch (e) {
+    btn.textContent = '❌ Error de llave';
+  }
+}
+</script>
 </body>
 </html>
