@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HabitFlow - Seguimiento de Hábitos & Cloud Sync</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+    .day-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    .day-btn:active { transform: scale(0.9); }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+  <div class="max-w-6xl mx-auto space-y-6">
+    <!-- Encabezado y Controles Superiores -->
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-800/80 border border-slate-700 p-6 rounded-2xl shadow-lg">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
+            <i class="fa-solid fa-fire-flame-curved"></i>
+          </div>
+          <h1 class="text-2xl font-bold tracking-tight text-white">HabitFlow</h1>
+          <span id="syncBadge" class="text-xs px-2.5 py-1 rounded-full bg-slate-700 text-slate-300 font-medium flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-slate-400" id="syncDot"></span>
+            <span id="syncText">Solo Local</span>
+          </span>
+        </div>
+        <p class="text-slate-400 text-sm mt-1">Registra tus objetivos diarios y sincroniza tus rachas entre dispositivos</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <button onclick="openSyncModal()" class="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium text-sm flex items-center gap-2 transition">
+          <i class="fa-brands fa-github text-lg"></i>
+          <span>Sincronizar Nube</span>
+        </button>
+        <button onclick="openHabitModal()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition">
+          <i class="fa-solid fa-plus"></i>
+          <span>Nuevo Hábito</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Tarjetas de Resumen (KPIs) -->
+    <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-slate-800/60 border border-slate-700/80 p-5 rounded-2xl flex items-center justify-between">
+        <div>
+          <p class="text-slate-400 text-xs uppercase font-semibold tracking-wider">Progreso Semanal</p>
+          <p id="kpiProgress" class="text-3xl font-bold text-white mt-1">0%</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl">
+          <i class="fa-solid fa-chart-pie"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/80 p-5 rounded-2xl flex items-center justify-between">
+        <div>
+          <p class="text-slate-400 text-xs uppercase font-semibold tracking-wider">Completados esta semana</p>
+          <p id="kpiTotal" class="text-3xl font-bold text-white mt-1">0</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-xl">
+          <i class="fa-solid fa-check-double"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/80 p-5 rounded-2xl flex items-center justify-between">
+        <div>
+          <p class="text-slate-400 text-xs uppercase font-semibold tracking-wider">Mejor Racha Activa</p>
+          <p id="kpiStreak" class="text-3xl font-bold text-amber-400 mt-1">0 días</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xl">
+          <i class="fa-solid fa-trophy"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cuadrícula Interactiva de Hábitos -->
+    <section class="bg-slate-800/80 border border-slate-700 rounded-2xl overflow-hidden shadow-lg">
+      <div class="p-5 border-b border-slate-700 flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-white">Objetivos de la Semana</h2>
+        <button onclick="resetWeek()" class="text-xs text-slate-400 hover:text-rose-400 transition">
+          <i class="fa-solid fa-rotate-left mr-1"></i> Reiniciar semana
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-700/80 text-slate-400 text-xs uppercase bg-slate-900/40">
+              <th class="py-3.5 px-5 font-semibold">Hábito</th>
+              <th class="py-3.5 px-2 text-center font-semibold">Lun</th>
+              <th class="py-3.5 px-2 text-center font-semibold">Mar</th>
+              <th class="py-3.5 px-2 text-center font-semibold">Mié</th>
+              <th class="py-3.5 px-2 text-center font-semibold">Jue</th>
+              <th class="py-3.5 px-2 text-center font-semibold">Vie</th>
+              <th class="py-3.5 px-2 text-center font-semibold">Sáb</th>
+              <th class="py-3.5 px-2 text-center font-semibold">Dom</th>
+              <th class="py-3.5 px-4 text-center font-semibold">Racha</th>
+              <th class="py-3.5 px-4 text-right font-semibold">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="habitTableBody" class="divide-y divide-slate-700/60 text-sm">
+            <!-- Filas dinámicas -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Gráficos de Rachas y Cumplimiento -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-semibold text-white">Cumplimiento Diario (%)</h3>
+          <button onclick="toggleChartType()" class="text-xs px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition">
+            Cambiar Vista
+          </button>
+        </div>
+        <div class="h-64">
+          <canvas id="dailyChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl shadow-lg">
+        <h3 class="font-semibold text-white mb-4">Comparativa de Rachas por Hábito</h3>
+        <div class="h-64">
+          <canvas id="streakChart"></canvas>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal: Nuevo Hábito -->
+  <div id="habitModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-bold text-white">Agregar Nuevo Hábito</h3>
+        <button onclick="closeHabitModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-400 uppercase font-semibold">Nombre del hábito</label>
+          <input id="habitNameInput" type="text" placeholder="Ej. Practicar con Firebase Studio" class="w-full mt-1 px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400 uppercase font-semibold">Categoría</label>
+            <input id="habitCatInput" type="text" placeholder="Ej. Estudio / ADSO" class="w-full mt-1 px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 uppercase font-semibold">Color</label>
+            <select id="habitColorInput" class="w-full mt-1 px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-indigo-500">
+              <option value="#6366f1">Índigo</option>
+              <option value="#10b981">Esmeralda</option>
+              <option value="#f59e0b">Ámbar</option>
+              <option value="#ec4899">Rosa</option>
+              <option value="#06b6d4">Cian</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeHabitModal()" class="px-4 py-2 rounded-xl bg-slate-700 text-slate-300 text-sm">Cancelar</button>
+        <button onclick="addHabit()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Configuración GitHub Gist (Casillero Secreto) -->
+  <div id="syncModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-brands fa-github"></i> Casillero Secreto (GitHub Gist)
+        </h3>
+        <button onclick="closeSyncModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Ingresa tu <strong>Personal Access Token</strong> (con permiso <code>gist</code>). Si dejas el ID del Gist en blanco, crearemos un casillero nuevo automáticamente y te mostraremos el código para que lo uses en tu celular o PC.
+      </p>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-400 uppercase font-semibold">1. Tu Llave (GitHub Token)</label>
+          <input id="ghTokenInput" type="password" placeholder="ghp_xxxxxxxxxxxx..." class="w-full mt-1 px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 uppercase font-semibold">2. Número de Casillero (Gist ID - Opcional al inicio)</label>
+          <input id="ghGistIdInput" type="text" placeholder="Se autogenera la primera vez" class="w-full mt-1 px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+      </div>
+      <div id="syncAlert" class="hidden text-xs p-3 rounded-xl bg-slate-900 text-slate-300 border border-slate-700"></div>
+      <div class="flex flex-wrap justify-between gap-2 pt-2">
+        <button onclick="pullFromGist()" class="px-3.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium flex items-center gap-1.5">
+          <i class="fa-solid fa-cloud-arrow-down"></i> Descargar de la Nube
+        </button>
+        <button onclick="saveAndPushGist()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium flex items-center gap-1.5">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Guardar y Subir a la Nube
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const DEFAULT_HABITS = [
+      { id: 1, name: '[ADSO] Gemini Notebook (NotebookLM)', category: 'ADSO', color: '#6366f1', days: [false, false, false, true, false, false, false] },
+      { id: 2, name: '[Inglés Técnico] Práctica Activa & Voz', category: 'Idiomas', color: '#10b981', days: [false, false, false, true, false, false, false] },
+      { id: 3, name: 'Platzi Video (15m) + Duolingo (10m)', category: 'Noche', color: '#f59e0b', days: [false, false, false, false, false, false, false] }
+    ];
+
+    let habits = JSON.parse(localStorage.getItem('habitflow_data')) || DEFAULT_HABITS;
+    let ghToken = localStorage.getItem('habitflow_gh_token') || '';
+    let ghGistId = localStorage.getItem('habitflow_gh_gist') || '';
+    let chartType = 'bar';
+    let dailyChartInstance = null;
+    let streakChartInstance = null;
+
+    function calculateStreak(daysArr) {
+      let current = 0, max = 0;
+      daysArr.forEach(d => {
+        if (d) { current++; if (current > max) max = current; }
+        else { current = 0; }
+      });
+      return max;
+    }
+
+    function updateSyncBadge(status, message) {
+      const dot = document.getElementById('syncDot');
+      const text = document.getElementById('syncText');
+      if (status === 'synced') {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        text.textContent = message || 'Sincronizado en GitHub';
+      } else if (status === 'syncing') {
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+        text.textContent = 'Sincronizando...';
+      } else if (status === 'error') {
+        dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+        text.textContent = 'Error de Red/Token';
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-slate-400';
+        text.textContent = 'Solo Local';
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem('habitflow_data', JSON.stringify(habits));
+      renderTable();
+      updateKPIs();
+      updateCharts();
+      if (ghToken && ghGistId) {
+        pushToGistSilent();
+      }
+    }
+
+    function toggleDay(habitId, dayIndex) {
+      const h = habits.find(item => item.id === habitId);
+      if (h) {
+        h.days[dayIndex] = !h.days[dayIndex];
+        saveData();
+      }
+    }
+
+    function deleteHabit(habitId) {
+      habits = habits.filter(item => item.id !== habitId);
+      saveData();
+    }
+
+    function resetWeek() {
+      habits.forEach(h => h.days = [false, false, false, false, false, false, false]);
+      saveData();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('habitTableBody');
+      tbody.innerHTML = '';
+      habits.forEach(h => {
+        const streak = calculateStreak(h.days);
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-700/30 transition';
+        
+        let daysHtml = '';
+        h.days.forEach((done, idx) => {
+          const activeStyle = done 
+            ? `background-color: ${h.color}; border-color: ${h.color}; color: white;` 
+            : '';
+          daysHtml += `
+            <td class="py-3 px-2 text-center">
+              <button onclick="toggleDay(${h.id}, ${idx})" style="${activeStyle}"
+                class="day-btn w-9 h-9 rounded-xl border border-slate-600 bg-slate-900/60 text-slate-400 flex items-center justify-center mx-auto hover:border-slate-400">
+                ${done ? '<i class="fa-solid fa-check text-sm"></i>' : ''}
+              </button>
+            </td>`;
+        });
+
+        tr.innerHTML = `
+          <td class="py-3.5 px-5">
+            <div class="font-medium text-white">${h.name}</div>
+            <span class="text-xs px-2 py-0.5 rounded-md bg-slate-700 text-slate-300">${h.category}</span>
+          </td>
+          ${daysHtml}
+          <td class="py-3.5 px-4 text-center">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <i class="fa-solid fa-fire mr-1"></i>${streak}d
+            </span>
+          </td>
+          <td class="py-3.5 px-4 text-right">
+            <button onclick="deleteHabit(${h.id})" class="text-slate-500 hover:text-rose-400 transition px-2">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateKPIs() {
+      const totalPossible = habits.length * 7;
+      let totalDone = 0;
+      let bestStreak = 0;
+
+      habits.forEach(h => {
+        totalDone += h.days.filter(Boolean).length;
+        const s = calculateStreak(h.days);
+        if (s > bestStreak) bestStreak = s;
+      });
+
+      const pct = totalPossible > 0 ? Math.round((totalDone / totalPossible) * 100) : 0;
+      document.getElementById('kpiProgress').textContent = `${pct}%`;
+      document.getElementById('kpiTotal').textContent = `${totalDone} / ${totalPossible}`;
+      document.getElementById('kpiStreak').textContent = `${bestStreak} días`;
+    }
+
+    function updateCharts() {
+      const dailyPercentages = DAYS.map((_, dayIdx) => {
+        if (habits.length === 0) return 0;
+        const completed = habits.filter(h => h.days[dayIdx]).length;
+        return Math.round((completed / habits.length) * 100);
+      });
+
+      const ctxDaily = document.getElementById('dailyChart').getContext('2d');
+      if (dailyChartInstance) dailyChartInstance.destroy();
+      dailyChartInstance = new Chart(ctxDaily, {
+        type: chartType,
+        data: {
+          labels: DAYS,
+          datasets: [{
+            label: '% Completado',
+            data: dailyPercentages,
+            backgroundColor: 'rgba(99, 102, 241, 0.5)',
+            borderColor: '#6366f1',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, max: 100, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      const ctxStreak = document.getElementById('streakChart').getContext('2d');
+      if (streakChartInstance) streakChartInstance.destroy();
+      streakChartInstance = new Chart(ctxStreak, {
+        type: 'bar',
+        data: {
+          labels: habits.map(h => h.name.length > 22 ? h.name.slice(0, 22) + '...' : h.name),
+          datasets: [{
+            label: 'Días de Racha',
+            data: habits.map(h => calculateStreak(h.days)),
+            backgroundColor: habits.map(h => h.color),
+            borderRadius: 8
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { beginAtZero: true, max: 7, grid: { color: '#334155' }, ticks: { stepSize: 1, color: '#94a3b8' } },
+            y: { grid: { display: false }, ticks: { color: '#f8fafc' } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function toggleChartType() {
+      chartType = chartType === 'bar' ? 'line' : 'bar';
+      updateCharts();
+    }
+
+    // Modal Hábito
+    function openHabitModal() { document.getElementById('habitModal').classList.replace('hidden', 'flex'); }
+    function closeHabitModal() { document.getElementById('habitModal').classList.replace('flex', 'hidden'); }
+    function addHabit() {
+      const name = document.getElementById('habitNameInput').value.trim();
+      const category = document.getElementById('habitCatInput').value.trim() || 'General';
+      const color = document.getElementById('habitColorInput').value;
+      if (!name) return;
+      habits.push({ id: Date.now(), name, category, color, days: [false, false, false, false, false, false, false] });
+      document.getElementById('habitNameInput').value = '';
+      closeHabitModal();
+      saveData();
+    }
+
+    // Modal y Lógica de GitHub Gist (Casillero Secreto)
+    function openSyncModal() {
+      document.getElementById('ghTokenInput').value = ghToken;
+      document.getElementById('ghGistIdInput').value = ghGistId;
+      document.getElementById('syncModal').classList.replace('hidden', 'flex');
+    }
+    function closeSyncModal() {
+      document.getElementById('syncModal').classList.replace('flex', 'hidden');
+    }
+
+    function showSyncAlert(msg) {
+      const el = document.getElementById('syncAlert');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    async function saveAndPushGist() {
+      ghToken = document.getElementById('ghTokenInput').value.trim();
+      ghGistId = document.getElementById('ghGistIdInput').value.trim();
+      if (!ghToken) { showSyncAlert('Por favor pega tu Token de GitHub.'); return; }
+
+      localStorage.setItem('habitflow_gh_token', ghToken);
+      updateSyncBadge('syncing');
+
+      const payload = {
+        description: "HabitFlow Cloud Sync Data",
+        public: false,
+        files: { "habitflow_data.json": { content: JSON.stringify(habits, null, 2) } }
+      };
+
+      try {
+        const url = ghGistId ? `https://api.github.com/gists/${ghGistId}` : `https://api.github.com/gists`;
+        const method = ghGistId ? 'PATCH' : 'POST';
+        const res = await fetch(url, {
+          method,
+          headers: { 'Authorization': `token ${ghToken}`, 'Accept': 'application/vnd.github.v3+json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Error al conectar con GitHub');
+        const data = await res.json();
+        ghGistId = data.id;
+        localStorage.setItem('habitflow_gh_gist', ghGistId);
+        document.getElementById('ghGistIdInput').value = ghGistId;
+        updateSyncBadge('synced');
+        showSyncAlert(`¡Sincronizado! Tu ID de Casillero es: ${ghGistId} (Cópialo para usarlo en otro dispositivo).`);
+      } catch (e) {
+        updateSyncBadge('error');
+        showSyncAlert('Error: Verifica que tu Token sea válido y tenga el permiso "gist" activado.');
+      }
+    }
+
+    async function pushToGistSilent() {
+      updateSyncBadge('syncing');
+      try {
+        const res = await fetch(`https://api.github.com/gists/${ghGistId}`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `token ${ghToken}`, 'Accept': 'application/vnd.github.v3+json' },
+          body: JSON.stringify({ files: { "habitflow_data.json": { content: JSON.stringify(habits, null, 2) } } })
+        });
+        if (res.ok) updateSyncBadge('synced');
+        else updateSyncBadge('error');
+      } catch {
+        updateSyncBadge('error');
+      }
+    }
+
+    async function pullFromGist() {
+      ghToken = document.getElementById('ghTokenInput').value.trim();
+      ghGistId = document.getElementById('ghGistIdInput').value.trim();
+      if (!ghToken || !ghGistId) {
+        showSyncAlert('Para descargar datos necesitas tanto tu Token como el ID del Casillero (Gist ID).');
+        return;
+      }
+      localStorage.setItem('habitflow_gh_token', ghToken);
+      localStorage.setItem('habitflow_gh_gist', ghGistId);
+      updateSyncBadge('syncing');
+
+      try {
+        const res = await fetch(`https://api.github.com/gists/${ghGistId}`, {
+          headers: { 'Authorization': `token ${ghToken}`, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (data.files && data.files["habitflow_data.json"]) {
+          habits = JSON.parse(data.files["habitflow_data.json"].content);
+          localStorage.setItem('habitflow_data', JSON.stringify(habits));
+          renderTable();
+          updateKPIs();
+          updateCharts();
+          updateSyncBadge('synced');
+          showSyncAlert('¡Datos descargados y actualizados desde la nube!');
+        }
+      } catch {
+        updateSyncBadge('error');
+        showSyncAlert('No se pudo encontrar el casillero. Revisa el Gist ID y tu Token.');
+      }
+    }
+
+    // Inicialización al abrir la página
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTable();
+      updateKPIs();
+      updateCharts();
+      if (ghToken && ghGistId) {
+        pullFromGist();
+      }
+    });
+  </script>
+</body>
+</html>
