@@ -643,38 +643,110 @@
   ☁️ Sincronizar Inglés
 </button>
 
+<!-- Pantalla de Bloqueo + Sincronización Automática con GitHub Gist -->
+<div id="cloudLockScreen" style="position:fixed; inset:0; background:#0f172a; z-index:99999; display:flex; align-items:center; justify-content:center; font-family:sans-serif; color:white; padding:20px;">
+  <div style="background:#1e293b; border:1px solid #334155; padding:28px; border-radius:16px; max-width:380px; width:100%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.6); text-align:center;">
+    <div style="font-size:36px; margin-bottom:10px;">🔐</div>
+    <h2 style="margin:0 0 8px 0; font-size:20px;">Acceso Privado & Sync</h2>
+    <p style="color:#94a3b8; font-size:13px; margin-bottom:20px; line-height:1.4;">
+      Ingresa tu llave de GitHub y tu ID de casillero para desbloquear y sincronizar tu progreso.
+    </p>
+    <input id="lockToken" type="password" placeholder="1. Tu Llave (ghp_...)" style="width:100%; box-sizing:border-box; padding:10px 12px; margin-bottom:10px; border-radius:10px; border:1px solid #475569; background:#0f172a; color:white; font-size:14px;">
+    <input id="lockGist" type="text" placeholder="2. ID de Casillero (Gist ID)" style="width:100%; box-sizing:border-box; padding:10px 12px; margin-bottom:16px; border-radius:10px; border:1px solid #475569; background:#0f172a; color:white; font-size:14px;">
+    <button onclick="unlockAndSync()" id="btnUnlock" style="width:100%; padding:11px; border-radius:10px; border:none; background:#4f46e5; color:white; font-weight:bold; cursor:pointer; font-size:14px;">
+      Desbloquear y Sincronizar
+    </button>
+    <p id="lockMsg" style="color:#f43f5e; font-size:12px; margin-top:12px; display:none;"></p>
+  </div>
+</div>
+
+<!-- Barra Flotante de Navegación y Guardado en la Nube -->
+<div style="position:fixed; bottom:20px; right:20px; display:flex; gap:10px; z-index:9999; font-family:sans-serif;">
+  <button onclick="pushIndexData()" id="btnQuickSync" style="background:#059669; color:white; border:none; padding:10px 15px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+    ☁️ Guardar Avance
+  </button>
+  <a href="habitos.html" style="background:#4f46e5; color:white; padding:10px 15px; border-radius:12px; text-decoration:none; font-weight:bold; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+    🔥 Hábitos
+  </a>
+</div>
+
 <script>
-async function syncIndexWithGist() {
-  let token = localStorage.getItem('habitflow_gh_token') || prompt('Pega tu Llave (GitHub Token ghp_...):');
-  if (!token) return;
-  localStorage.setItem('habitflow_gh_token', token.trim());
+// Si ya ingresaste tu llave en este dispositivo (por ejemplo en habitos.html), desbloquea solo
+window.addEventListener('DOMContentLoaded', () => {
+  const savedToken = localStorage.getItem('habitflow_gh_token');
+  const savedGist = localStorage.getItem('habitflow_gh_gist');
+  if (savedToken && savedGist) {
+    document.getElementById('lockToken').value = savedToken;
+    document.getElementById('lockGist').value = savedGist;
+    document.getElementById('cloudLockScreen').style.display = 'none';
+  }
+});
 
-  let gistId = localStorage.getItem('habitflow_gh_gist') || prompt('Pega tu ID de Casillero (o déjalo vacío si es la primera vez):');
-  const btn = document.getElementById('btnSyncIndex');
-  btn.textContent = '⏳ Sincronizando...';
+async function unlockAndSync() {
+  const token = document.getElementById('lockToken').value.trim();
+  const gistId = document.getElementById('lockGist').value.trim();
+  const msg = document.getElementById('lockMsg');
+  const btn = document.getElementById('btnUnlock');
 
-  // Guarda todos los datos locales de tu página de inglés y hábitos juntos
-  const allData = JSON.stringify(localStorage);
-  const payload = {
-    description: "Sincronización Total: Inglés + HabitFlow",
-    public: false,
-    files: { "backup_total.json": { content: allData } }
-  };
+  if (!token || !gistId) {
+    msg.style.display = 'block';
+    msg.textContent = 'Ingresa tu Llave y el ID de Casillero que te dio HabitFlow.';
+    return;
+  }
+
+  btn.textContent = 'Verificando con GitHub...';
+  try {
+    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    // Guarda las credenciales en el dispositivo
+    localStorage.setItem('habitflow_gh_token', token);
+    localStorage.setItem('habitflow_gh_gist', gistId);
+
+    // Si hay respaldo de inglés en el casillero, lo restaura
+    if (data.files && data.files["english_app_backup.json"]) {
+      const savedStore = JSON.parse(data.files["english_app_backup.json"].content);
+      Object.keys(savedStore).forEach(k => localStorage.setItem(k, savedStore[k]));
+      location.reload();
+      return;
+    }
+
+    document.getElementById('cloudLockScreen').style.display = 'none';
+  } catch (e) {
+    btn.textContent = 'Desbloquear y Sincronizar';
+    msg.style.display = 'block';
+    msg.textContent = 'Llave o ID de casillero incorrecto.';
+  }
+}
+
+async function pushIndexData() {
+  const token = localStorage.getItem('habitflow_gh_token');
+  const gistId = localStorage.getItem('habitflow_gh_gist');
+  const btn = document.getElementById('btnQuickSync');
+  if (!token || !gistId) return;
+
+  btn.textContent = '⏳ Guardando...';
+  const backup = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k !== 'habitflow_gh_token') backup[k] = localStorage.getItem(k);
+  }
 
   try {
-    const url = gistId ? `https://api.github.com/gists/${gistId.trim()}` : `https://api.github.com/gists`;
-    const method = gistId ? 'PATCH' : 'POST';
-    const res = await fetch(url, {
-      method,
-      headers: { 'Authorization': `token ${token.trim()}`, 'Accept': 'application/vnd.github.v3+json' },
-      body: JSON.stringify(payload)
+    await fetch(`https://api.github.com/gists/${gistId}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' },
+      body: JSON.stringify({
+        files: { "english_app_backup.json": { content: JSON.stringify(backup, null, 2) } }
+      })
     });
-    const data = await res.json();
-    localStorage.setItem('habitflow_gh_gist', data.id);
-    btn.textContent = '✅ ¡Sincronizado!';
-    alert('Sincronizado con éxito. Tu ID de casillero es: ' + data.id);
+    btn.textContent = '✅ ¡Guardado!';
+    setTimeout(() => btn.textContent = '☁️ Guardar Avance', 2500);
   } catch (e) {
-    btn.textContent = '❌ Error de llave';
+    btn.textContent = '❌ Error';
   }
 }
 </script>
